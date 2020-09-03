@@ -29,7 +29,7 @@ class PropertySet implements \ArrayAccess
         }
 
         $this->map();
-    
+
     }
 
     private static function init()
@@ -45,7 +45,12 @@ class PropertySet implements \ArrayAccess
             }
         }
     }
-    
+
+	public function getMap()
+	{
+		return $this->map;
+	}
+
     protected function map()
     {
         //print_r($this->raw->keys());
@@ -58,7 +63,7 @@ class PropertySet implements \ArrayAccess
                 //echo '  Seeking '.sprintf('%04x', $key->getCode())."\n";
                 $propertyName  = strtolower($key->getCode());
                 $schemaElement = self::$tagsMsg[sprintf('%04x', $key->getCode())] ?? null;
-                if ($schemaElement) {                    
+                if ($schemaElement) {
                     $propertyName = strtolower(preg_replace('/^[^_]*_/', '', $schemaElement[0]));
                     //echo '    Found msg '.$propertyName."\n";
                 }
@@ -69,7 +74,7 @@ class PropertySet implements \ArrayAccess
                 $propertyName = strtolower($key->getCode());
                 $schemaElement = self::$tagsOther[(string)$key->getGuid()][$key->getCode()] ?? null;
                 if ($schemaElement) {
-                    $propertyName = $schemaElement;                    
+                    $propertyName = $schemaElement;
                     //echo '    Found other '.$propertyName."\n";
                 }
                 $this->map[$propertyName] = $key;
@@ -105,19 +110,19 @@ class PropertySet implements \ArrayAccess
     public function get($code, $guid = null)
     {
         $val = $this->raw->get($this->resolveKey($code, $guid));
-        
+
         // resolve streams when they're requested
         if (is_callable($val)) {
-            
+
             $val = $val();
-           
+
         }
 
         return $val;
     }
 
     public function set($code, $value, $guid = null)
-    {        
+    {
         $this->raw->set($this->resolveKey($code, $guid), $value);
     }
 

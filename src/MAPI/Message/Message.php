@@ -46,21 +46,24 @@ class Message extends MessageItem
 
     public function __construct(Element $obj, Message $parent = null)
     {
-        
+
         $this->obj = $obj;
         $this->parent = $parent;
-        
+
         $this->properties = new PropertySet(
             new PropertyStore($obj, ($parent) ? $parent->getNameId() : null)
         );
 
         $this->buildAttachments();
         $this->buildRecipients();
-        
+
 
     }
 
-    
+	public function getObject()
+	{
+		return $this->obj;
+	}
 
     protected function buildAttachments()
     {
@@ -123,7 +126,7 @@ class Message extends MessageItem
     public function getBody()
     {
         if ($this->bodyPlain) return $this->bodyPlain;
-        
+
         if ($this->properties['body']) {
             $this->bodyPlain = $this->properties['body'];
         }
@@ -137,6 +140,11 @@ class Message extends MessageItem
         return $this->bodyPlain;
     }
 
+	public function getExistingBodyRTF()
+	{
+		return $this->bodyRTF;
+	}
+
     public function getBodyRTF()
     {
         if ($this->bodyRTF) return $this->bodyRTF;
@@ -149,13 +157,18 @@ class Message extends MessageItem
         return $this->bodyRTF;
     }
 
+	public function getExistingBodyHTML()
+	{
+		return $this->bodyHTML;
+	}
+
     public function getBodyHTML()
     {
         if ($this->bodyHTML) return $this->bodyHTML;
 
         if ($this->properties['body_html']) {
             $this->bodyHTML = $this->properties['body_html'];
-            
+
             if ($this->bodyHTML) {
                 $this->bodyHTML = trim($this->bodyHTML);
             }
@@ -175,10 +188,49 @@ class Message extends MessageItem
         return $this->bodyHTML;
     }
 
+	public function getSenderEmail()
+	{
+		$senderAddr = $this->properties['sender_email_address'];
+
+		if (!filter_var($senderAddr, FILTER_VALIDATE_EMAIL)) {
+			$senderAddr = $this->properties['sent_representing_email_address'];
+		}
+
+		if (!filter_var($senderAddr, FILTER_VALIDATE_EMAIL)) {
+			$senderAddr = $this->properties['sender_smtp_address'];
+		}
+
+		if (!filter_var($senderAddr, FILTER_VALIDATE_EMAIL)) {
+			$senderAddr = $this->properties['sent_representing_smtp_address'];
+		}
+
+		if (!filter_var($senderAddr, FILTER_VALIDATE_EMAIL)) {
+			// Hopefully it never comes to this!
+			return '';
+		}
+
+		return $senderAddr;
+	}
+
+	public function getSenderSearchKey()
+	{
+		$key = $this->properties['sender_search_key'];
+
+		if (!$key || substr($key, 0, 3) != "EX:") {
+			$key = $this->properties['sender_representing_search_key'];
+		}
+
+		if (substr($key, 0, 3) != "EX:") {
+			$key = null;
+		}
+
+		return $key ?: null;
+	}
+
     public function getSender()
     {
         $senderName = $this->properties['sender_name'];
-        $senderAddr = $this->properties['sender_email_address'];
+        $senderAddr = $this->getSenderEmail();
         $senderType = $this->properties['sender_addrtype'];
 
         $from = '';
@@ -186,7 +238,7 @@ class Message extends MessageItem
            $from = $senderAddr;
         }
         else {
-            $from = $this->properties['sender_smtp_address'] ?? 
+            $from = $this->properties['sender_smtp_address'] ??
                     $this->properties['sender_representing_smtp_address'] ??
                     // synthesise??
                     // for now settle on type:address eg X400:<dn>
@@ -195,8 +247,8 @@ class Message extends MessageItem
 
         if ($senderName) {
             $from = sprintf('%s <%s>', $senderName, $from);
-        }        
-        
+        }
+
         return $from;
     }
 
@@ -215,7 +267,7 @@ class Message extends MessageItem
     {
 	return $this->properties;
     }
-	
+
     public function __get($name)
     {
         if ($name == 'properties') {
